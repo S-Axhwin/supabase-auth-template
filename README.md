@@ -1,53 +1,44 @@
-# Supabase Google OAuth — Expo Router Template
+# Supabase Auth — Expo Router Template
 
-A production-ready authentication template for Expo Router apps using Supabase Google OAuth. Features secure session storage, automatic new-user onboarding detection, and a clean `(auth)/(onboarding)/(tabs)` route structure.
-
----
-
-## Features
-
-- ✅ **Google OAuth** via Supabase (deep-link callback, no manual token handling)
-- ✅ **LargeSecureStore** — sessions stored encrypted on device (SecureStore + AsyncStorage hybrid)
-- ✅ **New-user detection** — checks `public.profiles` for a row; routes to onboarding if absent
-- ✅ **Loading state management** — splash screen held until auth resolves, route gates prevent flashes
-- ✅ **TypeScript** — fully typed Supabase client and database schema
-- ✅ **Expo SDK 54 / Expo Router v6**
+A clean, production-ready authentication template for Expo Router applications using Supabase. It features an implicit-flow Google OAuth implementation, Email & Password authentication, secure on-device session storage, strict protected routing, and an automatic new-user onboarding flow.
 
 ---
 
-## Project Structure
+## 🚀 Features
 
-```
+- **Google OAuth (Implicit Flow)**: Smooth in-app browser flow without needing a separate callback screen.
+- **Email & Password Auth**: Built-in Sign In and Register screens with validation.
+- **Strict Protected Routing**: Global `useProtectedRoute` listener permanently locks unauthenticated users out of the main app, and dynamically routes users based on their session profile presence.
+- **New User Onboarding**: Detects if a user lacks a profile in `public.profiles` and traps them in an onboarding stack until they provide a display name.
+- **LargeSecureStore Adapter**: Works around Expo SecureStore's 2KB iOS limit by safely storing large Supabase JWTs.
+- **Expo SDK 54 & Expo Router v6**: Built on the latest Expo architecture.
+
+---
+
+## 📁 Project Structure
+
+```text
 app/
-├── _layout.tsx            Root layout — AuthProvider + splash gate
-├── index.tsx              Smart redirect gate (auth → onboarding → tabs)
-├── (auth)/
-│   ├── _layout.tsx
-│   ├── login.tsx          Google sign-in screen
-│   └── callback.tsx       OAuth deep-link handler
-├── (onboarding)/
-│   ├── _layout.tsx
-│   └── index.tsx          Display name collection (extend as needed)
-└── (tabs)/
-    ├── _layout.tsx        Tab navigator
-    └── index.tsx          Home screen placeholder
+├── _layout.tsx                  Root layout — Provides AuthContext & global route gate
+├── index.tsx                    Splash gate placeholder
+├── (auth)/                      [Unauthenticated Stack]
+│   ├── login.tsx                Sign In / Google OAuth
+│   └── register.tsx             Email & Password Registration
+├── (onboarding)/                [Missing Profile Stack]
+│   └── index.tsx                Display name collection form
+└── (tabs)/                      [Authenticated Stack]
+    ├── _layout.tsx              Bottom Tabs
+    └── index.tsx                Home Screen
 
 context/
-└── AuthContext.tsx        Session, user, profile, isLoading, isNewUser
+└── AuthContext.tsx              State: session, profile, loading. Handles all Supabase API calls.
 
 hooks/
-└── useAuth.ts             useAuth() hook
+├── useAuth.ts                   Context consumer
+└── useProtectedRoute.ts         Global routing gate. Evaluates auth state and kicks user to correct stack.
 
 lib/
-├── supabase.ts            Supabase client (LargeSecureStore adapter)
-└── auth.ts                signInWithGoogle(), signOut()
-
-types/
-└── database.ts            Database & Profile types
-
-components/ui/
-├── Button.tsx             Loading-aware button (primary / outline / ghost)
-└── LoadingScreen.tsx      Full-screen activity indicator
+└── supabase.ts                  Supabase client setup with expo-crypto & LargeSecureStore
 
 supabase/
 └── migrations/
@@ -56,210 +47,85 @@ supabase/
 
 ---
 
-## Prerequisites
+## 🛠 Setup Guide
 
-- [Bun](https://bun.sh) ≥ 1.0
-- [Expo CLI](https://docs.expo.dev/more/expo-cli/) (`bun install -g expo-cli`)
-- A [Supabase](https://supabase.com) project
-- A [Google Cloud Console](https://console.cloud.google.com) project with OAuth configured
-
----
-
-## Setup Guide
-
-### 1. Clone and install
+### 1. Clone & Install
 
 ```bash
-git clone <your-repo-url>
-cd supabase-onboarding
+git clone https://github.com/S-Axhwin/supabase-auth-template.git your-app-name
+cd your-app-name
 bun install
 ```
 
-### 2. Environment variables
+### 2. Environment Variables
 
-Copy the example file and fill in your Supabase credentials:
+Create your local env file:
 
 ```bash
 cp .env.example .env.local
 ```
 
+Fill in your Supabase project credentials (found in **Supabase Dashboard → Project Settings → API**):
+
 ```env
-EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-> Find these in your Supabase Dashboard → **Settings → API**.
+### 3. Database Migration
 
-### 3. Run the database migration
-
-In your Supabase project, go to **SQL Editor** and run the contents of:
+Go to your Supabase Dashboard **SQL Editor** and run the provided migration to create the `profiles` table and set up Row Level Security (RLS). You can find the SQL in:
 
 ```
 supabase/migrations/20240101000000_create_profiles.sql
 ```
 
-Or with the Supabase CLI (if your project is linked):
+*(Note: The `handle_new_user` DB trigger is commented out intentionally. This template expects the client-side onboarding screen to create the missing profile row, rather than relying on an auto-generated row from the trigger.)*
 
-```bash
-bunx supabase db push
-```
+### 4. Supabase Redirect URL Allowlist
 
-This creates `public.profiles` with Row-Level Security enabled.
+In order for Google OAuth to redirect back to your app, you must allowlist the URI scheme generated by your app environment.
 
-### 4. Configure Google OAuth in Supabase
+1. Start your bundler: `bun start`
+2. **Look at your terminal logs.** The app will print a line like:
+   `LOG  OAuth Redirect URL (Whitelist this in Supabase!): exp://192.168.1.10:8081`
+3. Copy that exact URL.
+4. Go to **Supabase Dashboard → Authentication → URL Configuration → Redirect URLs** and add it.
 
-1. Go to your Supabase Dashboard → **Authentication → Providers → Google**
-2. Enable it and paste in your **Google Client ID** and **Client Secret**
-3. Click **Save**
+> **Building for Production?** 
+> If you create a native build (APK/IPA), the redirect URL will use your app's scheme (e.g. `samfront://`). You will need to add that base URI to the allowlist as well.
 
-### 5. Set up Google Cloud Console
+### 5. Setup Google OAuth Credentials
 
-You need three OAuth 2.0 Client IDs:
-
-| Type | Required for |
-|---|---|
-| **Web application** | Supabase server-side exchange |
-| **iOS** | Native iOS OAuth |
-| **Android** | Native Android OAuth |
-
-#### Web application client
-1. [Google Cloud Console](https://console.cloud.google.com) → **APIs & Services → Credentials → Create Credentials → OAuth client ID**
-2. Type: **Web application**
-3. Under **Authorized redirect URIs**, add your Supabase callback URL:
-   ```
-   https://your-project-ref.supabase.co/auth/v1/callback
-   ```
-4. Copy the **Client ID** and **Client Secret** into Supabase (step 4 above)
-
-#### iOS client
-1. Create another credential → Type: **iOS**
-2. Bundle ID: your app's bundle identifier (e.g. `com.yourcompany.yourapp`)
-3. Copy the resulting **Client ID** into Supabase Google provider (comma-separated with web)
-
-#### Android client
-1. Create another credential → Type: **Android**
-2. Package name + SHA-1 fingerprint (get it via `keytool -keystore ~/.android/debug.keystore -list -v`)
-3. Copy the resulting **Client ID** into Supabase Google provider
-
-### 6. Add redirect URL to Supabase
-
-In Supabase Dashboard → **Authentication → URL Configuration → Redirect URLs**, add:
-
-```
-supabaseonboarding://auth/callback
-```
-
-> This matches the `scheme` in `app.json` and the `makeRedirectUri` call in `lib/auth.ts`.
-
-### 7. Run the app
-
-```bash
-# iOS
-bun run ios
-
-# Android
-bun run android
-```
+1. Go to **Supabase Dashboard → Authentication → Providers → Google** and enable it.
+2. Go to the [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services → Credentials**.
+3. Create an **OAuth Client ID** (Type: Web Application).
+4. Add your Supabase Callback URL to the **Authorized redirect URIs** (e.g., `https://<project-ref>.supabase.co/auth/v1/callback`).
+5. Copy the Client ID and Secret and paste them into your Supabase Google Provider settings.
 
 ---
 
-## Auth Flow
+## 🚦 How the Routing Works (`useProtectedRoute`)
 
-```
-App opens
-   │
-   ▼
-isLoading = true (splash held)
-   │
-   ├─ Restores session from SecureStore
-   │
-   ▼
-isLoading = false
-   │
-   ├─ No session ──────────────────► (auth)/login
-   │                                      │
-   │                                 User taps Google
-   │                                      │
-   │                                 Browser opens
-   │                                      │
-   │                               OAuth completes
-   │                                      │
-   │                           Deep link fires callback
-   │                           Code exchanged for session
-   │                                      │
-   ├─ Session + no profile ────────► (onboarding)/index
-   │                                      │
-   │                              User enters display name
-   │                                Profile upserted
-   │                                      │
-   └─ Session + profile ───────────► (tabs) ◄──────────────┘
-```
+This template completely abandons traditional screen-level `<Redirect>` components to avoid race conditions.
+
+Instead, `hooks/useProtectedRoute.ts` is mounted once in the root `app/_layout.tsx`. It acts as a global listener. Every time the AuthContext state updates (`loading`, `session`, `profile`), the hook evaluates where the user should be:
+
+1. **No Session?** → Forced to `/(auth)/login`
+2. **Has Session, but `profile` is null?** → Forced to `/(onboarding)`
+3. **Has Session AND `profile`?** → Forced to `/(tabs)`
+
+Because this is global, the moment a user completes the onboarding step and their profile is fetched, the app seamlessly snaps them into the Tabs interface, regardless of where they are.
 
 ---
 
-## Customisation Guide
+## 🔒 Session Storage (`LargeSecureStore`)
 
-### Rename the app scheme
-1. `app.json` → update `scheme`
-2. `lib/auth.ts` → update the `scheme` in `makeRedirectUri`
-3. Supabase Dashboard → update the redirect URL to match
+Supabase session JWTs can sometimes exceed the 2KB limit enforced by `expo-secure-store` on iOS.
 
-### Add onboarding fields
-Edit `app/(onboarding)/index.tsx` — add more `TextInput` fields and include them in the `supabase.from("profiles").upsert(...)` call. Add the corresponding columns to the SQL migration.
+To prevent silent authentication failures, `lib/supabase.ts` uses a custom `LargeSecureStore` class:
+1. Generates a cryptographically secure encryption key via `expo-crypto` and stores *the key* safely in `SecureStore`.
+2. Encrypts the raw large session JWT string with that key.
+3. Saves the encrypted blob into standard, unbounded `AsyncStorage`.
 
-### Add multi-step onboarding
-Create additional screens inside `app/(onboarding)/` (e.g. `step2.tsx`, `step3.tsx`). Use `router.push("/(onboarding)/step2")` to navigate between them. Only call `refreshProfile()` after the final step.
-
-### Add more tabs
-Add a new file to `app/(tabs)/` (e.g. `settings.tsx`) and register it with a `<Tabs.Screen>` in `app/(tabs)/_layout.tsx`.
-
-### Add more profile columns
-1. Update the SQL migration (or create a new migration file)
-2. Update `types/database.ts` to reflect the new columns
-3. The `Profile` type will automatically include the new fields
-
-### Use Supabase CLI for migrations
-```bash
-bunx supabase init          # first time only
-bunx supabase db push       # apply migrations to remote project
-bunx supabase gen types typescript --local > types/database.ts  # regenerate types
-```
-
----
-
-## How "New User" Detection Works
-
-1. On `SIGNED_IN`, `AuthContext` queries `public.profiles` for a row matching `auth.uid()`
-2. If **no row exists** → `isNewUser = true` → the root gate redirects to `/(onboarding)`
-3. After the onboarding upsert, `refreshProfile()` is called → `isNewUser` flips to `false`
-4. The router navigates to `/(tabs)`
-
-The auto-trigger in the migration is **commented out by design** — leaving it disabled preserves this pattern. If you enable the trigger, you'll need a different flag (e.g. `onboarding_complete boolean`) to distinguish new vs. returning users.
-
----
-
-## Session Storage (LargeSecureStore)
-
-Supabase session tokens can exceed the 2 KB per-item limit of `expo-secure-store` on iOS.
-
-`lib/supabase.ts` implements a **LargeSecureStore** adapter:
-
-| Value size | Storage | Encryption |
-|---|---|---|
-| ≤ 1.8 KB | `expo-secure-store` | OS-level (Keychain / Keystore) |
-| > 1.8 KB | `AsyncStorage` | XOR cipher; key stored in SecureStore |
-
-To upgrade to AES-256, install `aes-js` and swap the `_encrypt`/`_decrypt` methods in `lib/supabase.ts`.
-
----
-
-## Dependencies
-
-| Package | Version | Purpose |
-|---|---|---|
-| `@supabase/supabase-js` | ^2.x | Supabase client |
-| `expo-auth-session` | ~7.x | `makeRedirectUri` helper |
-| `expo-web-browser` | ~15.x | In-app browser for OAuth |
-| `expo-secure-store` | ~15.x | Hardware-encrypted storage |
-| `@react-native-async-storage/async-storage` | ^2.x | Large-value storage in LargeSecureStore |
-| `react-native-url-polyfill` | ^3.x | URL API polyfill for supabase-js |
+This preserves hardware-level security while bypassing the iOS byte limit.

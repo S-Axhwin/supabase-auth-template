@@ -1,98 +1,90 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+/**
+ * app/(tabs)/index.tsx — Home screen (placeholder)
+ *
+ * Replace this with your actual home content.
+ * The user's profile and session are available via useAuth().
+ */
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/hooks/useAuth";
+import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    const { user, profile, signOut } = useAuth();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    return (
+        <SafeAreaView style={styles.safe}>
+            <View style={styles.container}>
+                {/* Greeting */}
+                <View style={styles.header}>
+                    <Text style={styles.greeting}>
+                        Hey, {profile?.display_name ?? user?.email ?? "there"} 👋
+                    </Text>
+                    <Text style={styles.subtitle}>You're all set. Build something great.</Text>
+                </View>
+
+                {/* Template hint */}
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>🚀 Template ready</Text>
+                    <Text style={styles.cardBody}>
+                        This is your home screen. Replace this component with your app's
+                        main content. Auth, sessions, and onboarding are fully wired up.
+                    </Text>
+                </View>
+
+                {/* Sign out */}
+                <Button
+                    title="Sign Out"
+                    onPress={signOut}
+                    variant="outline"
+                />
+            </View>
+        </SafeAreaView>
+    );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+    safe: {
+        flex: 1,
+        backgroundColor: "#ffffff",
+    },
+    container: {
+        flex: 1,
+        paddingHorizontal: 28,
+        paddingTop: 32,
+        paddingBottom: 24,
+        gap: 24,
+    },
+    header: {
+        gap: 6,
+    },
+    greeting: {
+        fontSize: 26,
+        fontWeight: "800",
+        color: "#1a1a1a",
+        letterSpacing: -0.5,
+    },
+    subtitle: {
+        fontSize: 15,
+        color: "#6b6b6b",
+    },
+    card: {
+        flex: 1,
+        borderRadius: 16,
+        backgroundColor: "#f9f9f9",
+        borderWidth: 1,
+        borderColor: "#eeeeee",
+        padding: 20,
+        gap: 8,
+    },
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#1a1a1a",
+    },
+    cardBody: {
+        fontSize: 14,
+        color: "#6b6b6b",
+        lineHeight: 21,
+    },
 });

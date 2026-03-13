@@ -1,10 +1,7 @@
 /**
  * hooks/useAuth.ts
  *
- * Convenience hook to consume AuthContext.
- * Throws a clear error if used outside of <AuthProvider>.
+ * Re-exports useAuth from AuthContext for clean import paths.
  */
 
-import { useAuthContext } from "@/context/AuthContext";
-
-export const useAuth = useAuthContext;
+export { useAuth } from "@/context/AuthContext";

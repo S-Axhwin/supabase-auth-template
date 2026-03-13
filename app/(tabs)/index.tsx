@@ -10,7 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function HomeScreen() {
-    const { user, profile, signOut } = useAuth();
+    const { session, profile, signOut } = useAuth();
+    const user = session?.user;
 
     return (
         <SafeAreaView style={styles.safe}>

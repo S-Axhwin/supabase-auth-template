@@ -1,12 +1,8 @@
 /**
  * app/(onboarding)/index.tsx — First-time user onboarding
  *
- * Collects a display name and upserts it into public.profiles.
- * After saving, calls refreshProfile() so AuthContext updates its state,
- * then the root index gate redirects to /(tabs).
- *
- * Extend this screen with additional fields (avatar, role, etc.)
- * or add more steps as separate screens within this group.
+ * Calls saveProfile() from AuthContext which upserts the profiles row
+ * and re-fetches it — no manual supabase calls needed here.
  */
 
 import { Redirect, router } from "expo-router";
@@ -24,18 +20,14 @@ import {
 import { Button } from "@/components/ui/Button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/lib/supabase";
 
 export default function OnboardingScreen() {
-    const { user, profile, isLoading, refreshProfile } = useAuth();
+    const { profile, loading, saveProfile } = useAuth();
     const [displayName, setDisplayName] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Loading guard — show spinner until auth state resolves
-    if (isLoading) return <LoadingScreen />;
-
-    // Already has a profile — shouldn't be here
+    if (loading) return <LoadingScreen />;
     if (profile) return <Redirect href="/(tabs)" />;
 
     async function handleContinue() {
@@ -45,36 +37,26 @@ export default function OnboardingScreen() {
             return;
         }
 
-        if (!user) return;
-
         setError(null);
         setIsSaving(true);
 
-        try {
-            const { error: upsertError } = await supabase.from("profiles").upsert({
-                id: user.id,
-                display_name: name,
-            });
+        const err = await saveProfile(name);
 
-            if (upsertError) throw upsertError;
-
-            // Refresh context so isNewUser flips to false and root gate redirects
-            await refreshProfile();
-            router.replace("/(tabs)");
-        } catch (e: unknown) {
-            const message = e instanceof Error ? e.message : "Something went wrong.";
-            setError(message);
-        } finally {
+        if (err) {
+            setError(err);
             setIsSaving(false);
+            return;
         }
+
+        router.replace("/(tabs)");
     }
+    // if (loading) return <LoadingScreen />;
 
     return (
         <SafeAreaView style={styles.safe}>
             <KeyboardAvoidingView
                 style={styles.kav}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
-                keyboardVerticalOffset={0}
             >
                 <View style={styles.container}>
                     {/* Header */}
@@ -93,8 +75,8 @@ export default function OnboardingScreen() {
                             placeholder="Display name"
                             placeholderTextColor="#aaaaaa"
                             value={displayName}
-                            onChangeText={(text) => {
-                                setDisplayName(text);
+                            onChangeText={(t) => {
+                                setDisplayName(t);
                                 if (error) setError(null);
                             }}
                             autoCapitalize="words"
@@ -126,13 +108,8 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-    safe: {
-        flex: 1,
-        backgroundColor: "#ffffff",
-    },
-    kav: {
-        flex: 1,
-    },
+    safe: { flex: 1, backgroundColor: "#ffffff" },
+    kav: { flex: 1 },
     container: {
         flex: 1,
         paddingHorizontal: 28,
@@ -140,11 +117,7 @@ const styles = StyleSheet.create({
         paddingBottom: 32,
         gap: 28,
     },
-
-    // Header
-    header: {
-        gap: 8,
-    },
+    header: { gap: 8 },
     step: {
         fontSize: 12,
         fontWeight: "600",
@@ -158,17 +131,8 @@ const styles = StyleSheet.create({
         color: "#1a1a1a",
         letterSpacing: -0.5,
     },
-    subtitle: {
-        fontSize: 15,
-        color: "#6b6b6b",
-        lineHeight: 22,
-    },
-
-    // Form
-    form: {
-        flex: 1,
-        gap: 12,
-    },
+    subtitle: { fontSize: 15, color: "#6b6b6b", lineHeight: 22 },
+    form: { flex: 1, gap: 12 },
     input: {
         height: 52,
         borderRadius: 14,
@@ -186,8 +150,5 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#ffcccc",
     },
-    errorText: {
-        color: "#cc0000",
-        fontSize: 13,
-    },
+    errorText: { color: "#cc0000", fontSize: 13 },
 });

@@ -15,6 +15,7 @@ import "react-native-url-polyfill/auto";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
+import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 
 import type { Database } from "@/types/database";
@@ -45,9 +46,8 @@ class LargeSecureStore {
         let key = await SecureStore.getItemAsync(keyRef);
         if (!key) {
             // Generate a strong random key on first use
-            const random = new Uint8Array(32);
-            crypto.getRandomValues(random);
-            key = btoa(String.fromCharCode(...random));
+            const randomBytes = await Crypto.getRandomBytesAsync(32);
+            key = btoa(String.fromCharCode(...randomBytes));
             await SecureStore.setItemAsync(keyRef, key);
         }
         return key;
@@ -123,8 +123,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
         autoRefreshToken: true,
         persistSession: true,
         /**
-         * Must be false on native — Supabase should NOT try to parse the URL
-         * automatically; we handle the OAuth callback manually in the callback screen.
+         * Use implicit flow so tokens arrive in the URL fragment
+         * (samfront://#access_token=...&refresh_token=...).
+         *
+         * PKCE (the default) sends a `?code=` param that requires a
+         * server-side exchange — not suitable for the no-callback mobile flow.
+         */
+        flowType: "implicit",
+        /**
+         * Must be false on native — we parse the URL ourselves inside
+         * signInWithGoogle(); Supabase must not try to auto-detect it.
          */
         detectSessionInUrl: false,
     },

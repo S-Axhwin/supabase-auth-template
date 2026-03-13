@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "supabase-onboarding",
-    "slug": "supabase-onboarding",
+    "name": "samfront",
+    "slug": "samfront",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "supabaseonboarding",
+    "scheme": "samfront",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

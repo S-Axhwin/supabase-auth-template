@@ -14,6 +14,7 @@ import { useEffect } from "react";
 
 import { AuthProvider } from "@/context/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 
 // Keep the splash screen visible until we've resolved auth state
 SplashScreen.preventAutoHideAsync();
@@ -23,13 +24,14 @@ SplashScreen.preventAutoHideAsync();
 // ---------------------------------------------------------------------------
 
 function RootLayoutInner() {
-  const { isLoading } = useAuth();
+  const { loading } = useAuth();
+  useProtectedRoute();
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!loading) {
       SplashScreen.hideAsync();
     }
-  }, [isLoading]);
+  }, [loading]);
 
   return (
     <>
